@@ -248,6 +248,15 @@ def remove_old_acme_certs():
     }
     pending_certs = pending_certificate_service.get_pending_certs("all")
 
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+    
     # Delete pending certs more than a week old
     for cert in pending_certs:
         if datetime.now(timezone.utc) - cert.last_updated > timedelta(days=7):
@@ -317,6 +326,17 @@ def sync_all_sources():
         "function": function,
         "message": "creating celery task to sync source",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
+
     sources = validate_sources("all")
     for source in sources:
         log_data["source"] = source.label
@@ -346,6 +366,17 @@ def sync_source(source):
         "source": source,
         "task_id": task_id,
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
+
     current_app.logger.debug(log_data)
 
     if task_id and is_task_active(function, task_id, (source,)):
@@ -384,6 +415,16 @@ def sync_source_destination():
         "function": function,
         "message": "syncing AWS destinations and sources",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     for dst in destinations_service.get_all():
         if add_aws_destination_to_sources(dst):
@@ -408,6 +449,16 @@ def certificate_reissue():
         "function": function,
         "message": "reissuing certificates",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     try:
         cli_certificate.reissue(None, True)
@@ -434,6 +485,16 @@ def certificate_rotate():
         "function": function,
         "message": "rotating certificates",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     try:
         cli_certificate.rotate(None, None, None, None, True)
@@ -460,6 +521,16 @@ def endpoints_expire():
         "function": function,
         "message": "endpoints expire",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     try:
         cli_endpoints.expire(2)  # Time in hours
@@ -484,6 +555,16 @@ def get_all_zones():
         "function": function,
         "message": "refresh all zones from available DNS providers",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     try:
         cli_dns_providers.get_all_zones()
@@ -544,6 +625,16 @@ def notify_expirations():
         "function": function,
         "message": "notify for cert expiration",
     }
+
+    task_id = None
+    if celery.current_task:
+        task_id = celery.current_task.request.id
+
+    if task_id and is_task_active(function, task_id, (id,)):
+        log_data["message"] = "Skipping task: Task is already active"
+        current_app.logger.debug(log_data)
+        return
+
     current_app.logger.debug(log_data)
     try:
         cli_notification.expirations(current_app.config.get("EXCLUDE_CN_FROM_NOTIFICATION", []))
