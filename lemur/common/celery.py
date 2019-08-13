@@ -362,7 +362,7 @@ def clean_source(source):
     try:
         clean([source], True)
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "Clean source: Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("clean_source_timeout", "counter", 1)
@@ -508,7 +508,7 @@ def certificate_reissue():
     try:
         cli_certificate.reissue(None, True)
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "Certificate reissue: Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("certificate_reissue_timeout", "counter", 1)
@@ -546,7 +546,7 @@ def certificate_rotate():
     try:
         cli_certificate.rotate(None, None, None, None, True)
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "Certificate rotate: Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("certificate_rotate_timeout", "counter", 1)
@@ -583,7 +583,7 @@ def endpoints_expire():
     try:
         cli_endpoints.expire(2)  # Time in hours
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "endpoint expire: Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("endpoints_expire_timeout", "counter", 1)
@@ -618,7 +618,7 @@ def get_all_zones():
     try:
         cli_dns_providers.get_all_zones()
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "get all zones: Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("get_all_zones_timeout", "counter", 1)
@@ -689,7 +689,7 @@ def notify_expirations():
     try:
         cli_notification.expirations(current_app.config.get("EXCLUDE_CN_FROM_NOTIFICATION", []))
     except SoftTimeLimitExceeded:
-        log_data["message"] = "Checking revoked: Time limit exceeded."
+        log_data["message"] = "Notify expiring Time limit exceeded."
         current_app.logger.error(log_data)
         sentry.captureException()
         metrics.send("notify_expirations_timeout", "counter", 1)
