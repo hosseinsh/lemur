@@ -84,3 +84,35 @@ def dnstest(domain, token):
 
     status = SUCCESS_METRIC_STATUS
     print("[+] Done with ACME Tests.")
+
+
+@manager.option(
+    "-d",
+    "--domain",
+    dest="domain",
+    required=True,
+    help="Name of the Domain to store to (ex. \"_acme-chall.test.com\".",
+)
+@manager.option(
+    "-t",
+    "--token",
+    dest="token",
+    required=True,
+    help="Value of the Token to store in DNS as content.",
+)
+def test_creat_http01_challenge(domain, token):
+    """
+    Create, verify, and delete http01 validation
+    """
+    print("[+] Starting ACME Tests.")
+
+    acme_handler = AcmeHandler()
+    response = "random input for testing!"
+    acme_handler.create_http01_validation_challenge(domain, response, token)
+    if acme_handler.validate_http01_validation_challenge('https://public-http01-validator-test.s3.amazonaws.com/',
+                                                         response,
+                                                         token):
+        print(f"[+] validated token for `{domain}`")
+    else:
+        print(f"[+] token validation for `{domain}` failed")
+    acme_handler.clean_http01_validation_challenge(token)
