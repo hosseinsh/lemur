@@ -14,6 +14,7 @@
 import datetime
 import json
 import time
+import requests
 
 import OpenSSL.crypto
 import josepy as jose
@@ -30,6 +31,7 @@ from lemur.dns_providers import service as dns_provider_service
 from lemur.exceptions import InvalidAuthority, InvalidConfiguration, UnknownProvider
 from lemur.extensions import metrics, sentry
 from lemur.plugins import lemur_acme as acme
+from lemur.plugins.lemur_aws import s3
 from lemur.plugins.bases import IssuerPlugin
 from lemur.plugins.lemur_acme import cloudflare, dyn, route53, ultradns, powerdns
 from retrying import retry
@@ -41,6 +43,13 @@ class AuthorizationRecord(object):
         self.authz = authz
         self.dns_challenge = dns_challenge
         self.change_id = change_id
+
+
+class AuthorizationRecordHTTP(object):
+    def __init__(self, host, response, http_challenge):
+        self.host = host
+        self.response = response
+        self.http_challenge = http_challenge
 
 
 class AcmeHandler(object):
@@ -384,6 +393,39 @@ class AcmeHandler(object):
         if not provider:
             raise UnknownProvider("No such DNS provider: {}".format(type))
         return provider
+
+    def create_http01_validation_challenge(self, domain, response, http_challenge):
+        try:
+            s3.put(bucket_name=current_app.config.get("HTTP01_VALIDATOR_BUCKET"),
+                   prefix=challenges.HTTP01.URI_ROOT_PATH + "/" + http_challenge,
+                   data=response,
+                   encrypt=None,
+                   account_number=current_app.config.get("HTTP01_VALIDATOR_ACCOUNT"))
+        except ClientError:
+            sentry.captureException()
+            return False
+        current_app.logger.debug(f"creating the challenge object on S3 {http_challenge}", exc_info=True)
+        return AuthorizationRecordHTTP(host=domain, response=response, http_challenge=http_challenge)
+
+    def clean_http01_validation_challenge(self, http_challenge):
+        try:
+            s3.delete(bucket_name=current_app.config.get("HTTP01_VALIDATOR_BUCKET"),
+                      prefix=challenges.HTTP01.URI_ROOT_PATH + "/" + http_challenge,
+                      account_number=current_app.config.get("HTTP01_VALIDATOR_ACCOUNT"))
+        except ClientError:
+            sentry.captureException()
+            return False
+        current_app.logger.debug(f"deleting the challenge object on S3 {http_challenge}", exc_info=True)
+
+    def validate_http01_validation_challenge(self, domain, response, http_challenge):
+        session = requests.Session()
+        res = session.get(domain
+                          + challenges.HTTP01.URI_ROOT_PATH
+                          + "/" + http_challenge)
+        if res.status_code == 200 and res.text == response:
+            return True
+        else:
+            return False
 
 
 class ACMEIssuerPlugin(IssuerPlugin):
