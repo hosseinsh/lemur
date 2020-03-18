@@ -23,7 +23,7 @@ from lemur.plugins.base import plugins
 from lemur.constants import SUCCESS_METRIC_STATUS, FAILURE_METRIC_STATUS
 from lemur.deployment import service as deployment_service
 from lemur.endpoints import service as endpoint_service
-from lemur.notifications.messaging import send_rotation_notification
+from lemur.notifications.messaging import send_rotation_notification, send_default_autorotate_notification
 from lemur.domains.models import Domain
 from lemur.authorities.models import Authority
 from lemur.certificates.schemas import CertificateOutputSchema
@@ -32,9 +32,10 @@ from lemur.certificates.service import (
     reissue_certificate,
     get_certificate_primitives,
     get_all_pending_reissue,
+    get_all_expiring_attached_to_endpoints,
     get_by_name,
     get_all_certs,
-    get,
+    get
 )
 
 from lemur.certificates.verify import verify_string
@@ -482,3 +483,16 @@ def check_revoked():
             cert.status = "unknown"
 
         database.update(cert)
+
+
+@manager.command
+def default_to_autorotate_for_expiring_certs_attached_to_endpoints():
+    """
+    Function updates any certificates with auto-rotate disabled but attached to endpoints to have auto-rotate enabled.
+    It also notifies the owners of this change.
+    :return:
+    """
+    for cert in get_all_expiring_attached_to_endpoints(
+            current_app.config.get("LEMUR_DEFAULT_TO_AUTO_ROTATE_DAYS_BEFORE_EXPIRY", 15)):
+        # update(cert.id, {"rotation": True})
+        send_default_autorotate_notification(cert)

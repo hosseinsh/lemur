@@ -178,6 +178,18 @@ def send_expiration_notifications(exclude):
     return success, failure
 
 
+def send_default_autorotate_notification(certificate, notification_plugin=None):
+    """
+    Sends a report to certificate owners when their certificate's autorotate has been enabled,
+    since their certificate is attached to an endpoint
+
+    :param certificate:
+    :param notification_plugin:
+    :return:
+    """
+    # TODO
+
+
 def send_rotation_notification(certificate, notification_plugin=None):
     """
     Sends a report to certificate owners when their certificate has been

@@ -15,6 +15,7 @@ from sqlalchemy import func, or_, not_, cast, Integer
 from lemur import database
 from lemur.authorities.models import Authority
 from lemur.certificates.models import Certificate
+from lemur.endpoints.models import Endpoint
 from lemur.certificates.schemas import CertificateOutputSchema, CertificateInputSchema
 from lemur.common.utils import generate_private_key, truthiness
 from lemur.destinations.models import Destination
@@ -133,6 +134,28 @@ def get_all_pending_reissue():
         .filter(Certificate.in_rotation_window == True)
         .all()
     )  # noqa
+
+
+def get_all_expiring_attached_to_endpoints(days):
+    """
+    Retrieves all certificates which are attached to endpoints, but don't have auto-rotate enabled.
+
+    Must be X days from expiration
+
+    :return:
+    """
+
+    expiration_window_days = arrow.now().shift(days=days).format("YYYY-MM-DD")
+
+    sub_query = (
+        Certificate.query.filter(Certificate.rotation == False)
+        .filter(not_(Certificate.replaced.any()))
+        .filter(Certificate.not_after >= arrow.now())
+        .filter(Certificate.not_after < expiration_window_days)
+        .all()
+    )  # noqa
+
+    return sub_query.filter(Endpoint.certificate_id.in_(sub_query))
 
 
 def find_duplicates(cert):
